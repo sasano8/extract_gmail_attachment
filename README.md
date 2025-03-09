@@ -1,5 +1,7 @@
 # 概要
 
+Gmail を抽出します。
+
 ## 認証認可
 
 シークレットを用いて、 OAuth Flow を実行します。
@@ -41,5 +43,18 @@ make extract-2024
 after はその日付以降（その日付を含む）、before はその日付より過去（その日付を含まない）を抽出します。
 
 ```
-python -m modules --pipelines=pipe_extract_attachments,pipe_rm_empty_dir --clean 1 --protocol=file --output_dir=".cache/2024" --query="has:attachment after:2024/01/01 before:2025/01/01"
+python -m modules \
+  --pipelines=pipe_extract_attachments,pipe_rm_empty_dir \
+  --clean 1 \
+  --protocol=file  \
+  --output_dir=".cache/2024"  \
+  --query="after:2024/01/01 before:2025/01/01 has:attachment smaller:1000000"
 ```
+
+## 課題
+
+* 特になし
+* 強いて言うならクエリを標準的な仕様にマッピングしたい
+  * SQL か全文検索クエリに合わせたい
+  * select id, sender, date, title, content from mails
+  * select id, mail_id, sender, date, title from attachments

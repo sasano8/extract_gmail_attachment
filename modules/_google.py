@@ -1,7 +1,7 @@
 import os
 import json
 import base64
-from typing import TypedDict
+from typing import TypedDict, Iterable
 import logging
 
 from google.oauth2.credentials import Credentials
@@ -176,7 +176,9 @@ class GmailClient:
                 file_data,
             )
 
-    def query(self, query=None):
+    def query(self, query=None) -> Iterable[GMailInfo]:
+        """クエリを実行し、GMailInfo を返す。"""
+
         client = self._service
 
         messages = []
@@ -216,6 +218,7 @@ def pipe_extract_attachments(
         ".js",
         ".gif",
         ".png",
+        ".p7s",  # 電子署名付きEメールに対応していない場合に、smime.p7s という添付ファイルが添付される
     },  # htmlに含まれるデータなども添付ファイルとして認識されてしまうので exclude
 ):
     """単に添付ファイルを取得する"""
