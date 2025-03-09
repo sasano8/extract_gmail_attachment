@@ -1,8 +1,7 @@
 import os
 import json
 import base64
-from typing import TypedDict, Iterable
-import email.utils
+from typing import TypedDict
 import logging
 
 from google.oauth2.credentials import Credentials
@@ -11,7 +10,7 @@ from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 from fsspec import filesystem, AbstractFileSystem
 
-from ._path import assert_linux_safe_path
+from ._path import assert_linux_safe_path, decode_email_date, decode_email_sender
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -122,8 +121,8 @@ class GmailClient:
         date = headers.get("date", "（日付なし）")
         sender = headers.get("from", "（送信者なし）")
 
-        parsed_date = email.utils.parsedate_to_datetime(date).isoformat()
-        name, email_address = email.utils.parseaddr(sender)
+        parsed_date = decode_email_date(date)
+        name, email_address = decode_email_sender(sender)
 
         return {
             "title": subject,
@@ -204,7 +203,7 @@ class GmailClient:
                 break
 
 
-def extract_attachments(
+def pipe_extract_attachments(
     protocol: str,
     output_dir,
     clean: bool = False,
@@ -262,7 +261,9 @@ def extract_attachments(
             domain = os.path.join(output_dir, sender_address)
             fs.mkdirs(domain, exist_ok=True)
 
-            path = os.path.join(output_dir, sender_address, "_".join([date, filename]))
+            path = os.path.join(
+                output_dir, sender_address, "_".join([date, filename.replace(":", "-")])
+            )
 
             if is_exclude(filename):
                 logger.info("[SKIP   ]" + path)
@@ -275,23 +276,9 @@ def extract_attachments(
                 f.write(file_data)
 
 
-# def filter_attachments(
-#     protocol: str, output_dir, clean: bool = False, query: str = None
-# ):
-#     fs: AbstractFileSystem = filesystem(protocol)
-#     exclude_exts = {"ics", ".html", ".htm", ".css", ".js", ".gif"}
-#     all_files = fs.glob(os.path.join(output_dir, "**"))
-#     for file in all_files:
-#         if not fs.isfile(file):
-#             continue
-
-#         for ext in exclude_exts:
-#             if file.endswith(ext):
-#                 fs.rm_file(file)
-#                 continue
-
-
-def rm_empty_dir(protocol: str, output_dir, clean: bool = False, query: str = None):
+def pipe_rm_empty_dir(
+    protocol: str, output_dir, clean: bool = False, query: str = None
+):
     fs: AbstractFileSystem = filesystem(protocol)
 
     all_files = fs.glob(os.path.join(output_dir, "**"))
