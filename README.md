@@ -25,5 +25,5 @@ make extract-2024
 after はその日付以降（その日付を含む）、before はその日付より過去（その日付を含まない）を抽出します。
 
 ```
-python -m modules --pipelines=extract_attachments,filter_attachments,rm_empty_dir --clean 1 --protocol=file --output_dir=".cache/2024" --query="has:attachment after:2024/01/01 before:2025/01/01"
+python -m modules --pipelines=extract_attachments,rm_empty_dir --clean 1 --protocol=file --output_dir=".cache/2024" --query="has:attachment after:2024/01/01 before:2025/01/01"
 ```
