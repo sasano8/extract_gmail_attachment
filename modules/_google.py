@@ -18,8 +18,9 @@ logger = logging.getLogger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-SECRET_FILE = "google_secret.secret.json"
-TOKEN_FILE = "token.json"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SECRET_FILE = os.path.join(PROJECT_ROOT, "google_secret.secret.json")
+TOKEN_FILE = os.path.join(PROJECT_ROOT, "token.json")
 
 
 class CredentialResoruce:
@@ -67,16 +68,30 @@ class OauthFlow:
 
         token = res.get_token_or_none()
         if token is None:
-            client_config = res.get_secret()
-            creds = self.exec_oauth_flow_from_dict(client_config, SCOPES)
-            res.save_token(json.loads(creds.to_json()))
-            token = res.get_token_or_none()
+            return self._run_oauth_flow(res)
 
         creds = Credentials.from_authorized_user_info(token)
-        if not creds.valid:
-            if creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+        if creds.valid:
+            return creds
 
+        if creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())
+                res.save_token(json.loads(creds.to_json()))
+                logger.info("Token refreshed successfully.")
+                return creds
+            except Exception as e:
+                logger.warning(f"Token refresh failed: {e}")
+
+        # リフレッシュ失敗または不可能な場合、再認証
+        logger.info("Re-authenticating...")
+        return self._run_oauth_flow(res)
+
+    def _run_oauth_flow(self, res: CredentialResoruce):
+        client_config = res.get_secret()
+        creds = self.exec_oauth_flow_from_dict(client_config, SCOPES)
+        res.save_token(json.loads(creds.to_json()))
+        logger.info("New token saved.")
         return creds
 
     @classmethod
